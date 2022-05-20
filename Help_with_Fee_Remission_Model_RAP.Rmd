@@ -1,0 +1,985 @@
+---
+title: "Help_with_Fee_Remission_Model_RAP"
+output: R markdown in html_document
+---
+
+## Aim
+The purpose of the model is to estimate the additional cost of proposed changes to the Help with Fees remission scheme, a mean-test that assesses whether applicants receive help with paying their court fee(s). 
+
+## Old Model: 
+The current Help with Fees scheme detailed on the internet here: How to apply for help with fees (EX160A) - GOV.UK (www.gov.uk).
+
+
+## Acknowledgement
+
+The concept of a Reproducible Analytical Pipeline (RAP) was 
+created by Matthew Upson and Matthew Gregory at the Government Digital Service. 
+
+https://dataingovernment.blog.gov.uk/2017/03/27/reproducible-analytical-pipeline/
+
+https://ukgovdatascience.github.io/rap_companion/
+
+https://ukgovdatascience.github.io/rap_companion/why.html#why-learning-to-rap-might-be-hard
+
+https://www.isdscotland.org/About-ISD/Methodologies/_docs/Reproducible_Analytical_Pipelines_paper_v1.4.pdf
+
+https://ukgovdatascience.github.io/rap_companion/exemplar.html#tidy-data
+
+https://software-carpentry.org/lessons/
+
+
+
+## Determine whether work is reproducible, some key questions1 to ask are:
+· Is it clear where to begin?
+· Can you determine which inputs produced which outputs?
+· Which is the most recent copy of the code?
+· What files can I safely delete, and should I delete files at all?
+· Are scripts and reports version controlled?
+· Are there lots of manual steps in the process?
+· Are proprietary software used in the process?
+
+## A Reproducible Analytical Pipeline should be:
+
+# 1. Reproducible
+This is achieved through the use of open source software, R Projects, package 
+management and ideally computing environment management.
+# 2. High quality
+This is achieved by removing manual steps in the production process which increase the 
+risk of errors and incorporating data QA and unit testing of R functions into the pipeline.
+# 3. Auditable
+This is achieved through the use of version control and documentation of R functions and 
+code.
+# 4. Sustainable
+This is achieved through training and up-skilling of staff – “sustainability is social, not 
+technical” (Matthew Upson, 2018) and requires everyone in a team to know how to use and 
+update the pipeline.
+
+
+
+
+## ######################################################### ##
+## Identifying RAP battles in the organisation:
+
+# Does your team spend too much time moving data between various softwares?
+
+# Could you reproduce your most recent publication’s stats? How about from five years ago?
+
+# What would your team do with their time if it was freed up from copying and pasting?
+
+# Do you know of any periodic reports like this in your organisation?
+
+# Now rank them from simple to complex.
+
+
+# Are there any quick wins here? (revisit this list at the end of the course)
+
+# How consistent is the input data format? (does it change often?)
+
+# How consistent is the output report format? (does it change often?)
+
+# Can you code in the open? Are the analytical methods used in the report sensitive?
+
+# What proportion of spreadsheets contain errors?
+
+
+## ######################################### ##
+
+## Bussiness Benefits:
+
+# How many statistical reports are you involved in the production of each year (or quarter; whatever time period makes most sense to you and your organisation)?
+
+# What proportion of your time do you spend working on these productions?
+Multiply the proportion of your time spent on producing these reports by your salary. Is your organisation getting good value for money? What about if you consider all the other staff working on this report?
+
+## ######################################### ##
+
+## Finding a buddy to collaborate with
+
+# Buddy up and work on a project together, facilitating peer review and sharing the workload to build a working package more quickly together.
+
+# Who in your organisation would be interested with collaborating with me with the RAP battle. Who has the time and enthusiasm? Is there anyone who already knows how to RAP who could peer review my code and pull requests?
+
+
+## ######################################### ##
+
+## Picking the RAP battle wisely
+
+## DIY principle:
+# Do not repeat yourself
+instead of copy-pasting piece of code, RAPing the R package 
+
+Periodic, customer need is likely to stay constant, business critical, time consuming but straight forward, consistent output format, we can publish it all except our internal data which we can hold locally, customers might like to check our analysis thus improving our transparency objectives
+
+# Drawing data from many disparete sources
+
+As it is NOT a one off report you might not benefit from the time investment of up-skilling. 
+You are NOT likely time pressured so we do NOT suggest carrying on with this using your traditional methods.
+
+## Establishing the minimal tidy dataset
+
+Read this paper by Hadley Wickham on tidy data.
+
+A Garrett Gromulund tutorial provides characteristics of countries through time data.
+
+Work through the Digital, Culture, Media and Sport (DCMS) example in the RAP companion.
+
+We include an extension case study example here. The walkthrough to the thought processes for this case study on a report on the special educational needs of Moj staffs in England is also included as a downloadable resource.
+
+
+@Article{tidy-data,
+  author = {Hadley Wickham},
+  issue = {10},
+  journal = {The Journal of Statistical Software},
+  selected = {TRUE},
+  title = {Tidy data},
+  url = {http://www.jstatsoft.org/v59/i10/},
+  volume = {59},
+  year = {2014},
+  bdsk-url-1 = {http://www.jstatsoft.org/v59/i10/},
+}
+
+## ######################################### ##
+```{r}
+
+
+## Function create_data_object
+##
+##
+## Creates data objects from s3 csv files and
+## Return RDA objects
+## output: data_RDAobj
+
+## input arguments:
+## s3_path : path_s3_bucket_csv : an string path to a S3 bucket CSV file
+## format: "s3://.../....csv"
+##
+##FUN : function to read different type of data
+##
+## Output: RDA object
+## #
+##
+## rda : data table from red_using function
+##
+## dataset_type : based on if_else(condition, true, false, missing = NULL)
+## ## condition
+## tibble: 1 (default)
+## data.frame: 2
+##
+
+##
+## Last edit: 07032022
+#Edited by: Leila Yousefi
+
+## ######################### Setting up Data ####################### ##
+##
+# create_data_object <- function(FUN, s3_path, dataset_type, ...) {
+#
+#   ## missing(FUN), missing(s3_path))
+#   ## missing(dataset_type))
+#   ##
+#   ## Setting up default arguments:
+#   ##
+#   if(missing(FUN)){
+#     FUN <- data.table::fread
+#   }
+#
+#   if(missing(s3_path)){
+#     s3_path <- 's3://alpha-help-with-fees-model/_1_frs_psm_manipulation.csv'
+#   }
+#
+#   if(missing(dataset_type)){
+#     dataset_type <- 1  # tibble: 1 (default)
+#   }
+#
+#   # trim s3:// if included by the user
+#   s3_path <- paste0("s3://", gsub('^s3://', "", s3_path))
+#   # find file ext
+#   file_ext <- paste0('.', tolower(tools::file_ext(s3_path)))
+#   # download file to tempfile()
+#   tmp <- botor::s3_download_file(s3_path,
+#                                  tempfile(fileext = file_ext),
+#                                  force = TRUE)
+#   FUN(tmp, ...)
+#   ##
+#   ##  S3 bucket CSV file
+#   rda <- FUN(tmp, ...)
+#
+#   # Implementation of the SAS HwF weightings in R
+#   #
+#   ## Read S3 bucket CSV file and convert it to a data.table
+#   #  rda <- s3_read("s3://alpha-help-with-fees-model/_1_frs_psm_manipulation.csv", data.table::fread)
+#
+#   ## Creates a tibble/dataframe from the data imported from the data.table(rda)
+#   rda <- if (dataset_type == 2) {rda = data.frame(rda)} else {rda = as_tibble(rda)}
+#
+#   ## ###################  RDA object ######################### ##
+#   ##
+#   ## go from raw data csv to a RDA object
+#   ##
+#   #dataRDAobject <-
+#   usethis::use_data(rda, overwrite = TRUE)
+#
+#   return(rda)
+# }
+## Function create_data_object
+##
+##
+## Creates data objects from s3 csv files and
+## Return RDA objects
+## output: data_RDAobj
+
+## input arguments:
+## s3_path : path_s3_bucket_csv : an string path to a S3 bucket CSV file
+## format: "s3://.../....csv"
+##
+##FUN : function to read different type of data
+##
+## Output: RDA object
+## #
+##
+## rda : data table from red_using function
+##
+## dataset_type : based on if_else(condition, true, false, missing = NULL)
+## ## condition
+## tibble: 1 (default)
+## data.frame: 2
+##
+
+##
+## Last edit: 07032022
+#Edited by: Leila Yousefi
+
+## ######################### Setting up Data ####################### ##
+read_using <- function(FUN, s3_path, ...) {
+  # trim s3:// if included by the user
+  s3_path <- paste0("s3://", gsub('^s3://', "", s3_path))
+  # find fileext
+  file_ext <- paste0('.', tolower(tools::file_ext(s3_path)))
+  # download file to tempfile()
+  tmp <- botor::s3_download_file(s3_path,
+                                 tempfile(fileext = file_ext),
+                                 force = TRUE)
+  FUN(tmp, ...)
+}
+
+
+create_data_object <- function(FUN, s3_path, dataset_type, rda) {
+
+  ## missing(FUN), missing(s3_path))
+  ## missing(dataset_type))
+  ##
+  ## Setting up default arguments:
+  ##
+  gc()
+
+  if(missing(FUN)){
+    FUN <- data.table::fread
+  }
+
+  if(missing(s3_path)){
+    s3_path <- 's3://alpha-hr-arm-main/data/oleeo_data/processed_data/recruitment_main_data/Jan-22/All_Applications_Jan-22.csv'
+  }
+
+  if(missing(dataset_type)){
+    dataset_type <- 1  # tibble: 1 (default)
+  }
+
+  # trim s3:// if included by the user
+  s3_path <- paste0("s3://", gsub('^s3://', "", s3_path))
+  # find file ext
+  file_ext <- paste0('.', tolower(tools::file_ext(s3_path)))
+  # download file to tempfile()
+  tmp <- botor::s3_download_file(s3_path,
+                                 tempfile(fileext = file_ext),
+                                 force = TRUE)
+  #FUN(tmp,...)
+  ##
+  ##  S3 bucket CSV file
+  #downloded_file <- FUN(tmp,...)
+  dt <- FUN(tmp)
+
+  # Implementation of the SAS HwF weightings in R
+  #
+  ## Read S3 bucket CSV file and convert it to a data.table1
+  ##
+  #  rda <- s3_read("s3://alpha-help-with-fees-model/_1_frs_psm_manipulation.csv", data.table::fread)
+
+  ## Creates a tibble/dataframe from the data imported from the data.table(rda)
+  rda <- if (dataset_type == 2) {rda = data.frame(dt)} else {rda = tidyr::as_tibble(dt)}
+  ## if (dataset_type == 2) {data.frame(FUN(tmp,...))} else {as_tibble(FUN(tmp,...))}
+  ## ###################  RDA object ######################### ##
+  ##
+  ## go from raw data csv to a RDA object
+  ##
+  #dataRDAobject <-
+  usethis::use_data(rda, overwrite = TRUE)
+  #return(rda)
+}
+
+## Loading HelpWithFeesModelRAP
+# devtools::document(roclets = c('rd', 'collate', 'namespace', 'vignette'))
+# devtools::load_all(".")
+# devtools::check()
+
+
+## ######################### Setting up Data ####################### ##
+## Function create_data_object
+## Creates data objects from s3 csv files and
+## Return RDA objects
+## Output: RDA object
+
+## input arguments: -----------------------------------------------------
+
+##FUN : function to read different type of data
+FUN <- data.table::fread
+
+## s3_path : path_s3_bucket_csv : an string path to a S3 bucket CSV file
+s3_path <- "s3://alpha-help-with-fees-model/_1_frs_psm_manipulation.csv"
+
+## dataset_type : based on if_else(condition, true, false, missing = NULL)
+## ## condition
+## tibble: 1 (default)
+## data frame: 2
+dataset_type <- 2 # data frame
+
+## output:
+## dt : data table from red_using function
+## Read S3 bucket CSV file and convert it to a data.table and then data frame
+rda_df  <- create_data_object(FUN, s3_path, dataset_type, df)
+# Create a dataframe called WeightingsDF from the data imported from the PSM dataset (_1_frs_psm_manipulation.csv)
+WeightingsDF <- rda_df
+
+
+
+## ######################### Setting up Data ####################### ##
+## Function create_data_object
+## Creates data objects from s3 csv files and
+## Return RDA objects
+## Output: RDA object
+
+## input arguments: -----------------------------------------------------
+
+
+## Read S3 bucket CSV files and convert it to a data.table and then tibble
+##
+## Civil data------------------------------------------------
+## FUN : function to read different type of data
+FUN <- data.table::fread
+
+## s3_path : path_s3_bucket_csv : an string path to a S3 bucket CSV file
+s3_path <- "s3://alpha-help-with-fees-model/CCUS_weights.csv"
+
+## dataset_type tibble: 1 (default)
+dataset_type <- 1 # tibble
+
+# civil_weight dataset brings in the adjustment that
+# is needed to the weights for civil users.
+civil_weight <- create_data_object(FUN, s3_path, dataset_type, civil_weight_rda)
+
+## ######################### Setting up Data ####################### ##
+## Function create_data_object
+## Creates data objects from s3 csv files and
+## Return RDA objects
+## Output: RDA object
+
+## input arguments: -----------------------------------------------------
+
+
+## Divorce data------------------------------------------------
+## FUN : function to read different type of data
+FUN <- data.table::fread
+
+## s3_path : path_s3_bucket_csv : an string path to a S3 bucket CSV file
+s3_path <- "s3://alpha-help-with-fees-model/divorce_weights.csv"
+
+## dataset_type tibble: 1 (default)
+dataset_type <- 1 # tibble
+
+# civil_weight dataset brings in the adjustment that
+# is needed to the weights for civil users.
+divorce_weight <- create_data_object(FUN, s3_path, dataset_type, divorce_weight_rda)
+# divorce_weight dataset brings in the adjustment that is
+# needed to the weights for divorced users.
+
+rm(list = c("read_using"))
+```
+
+## spread() turns a pair of key:value columns into a set of tidy columns
+To use spread(), pass it the name of a data frame, then the name of the key column in the data frame, and then the name of the value column. Pass the column names as they are; do not use quotes.
+spread() returns a copy of your data set that has had the key and value columns removed. In their place, spread() adds a new column for each unique value of the key column. These unique values will form the column names of the new columns. spread() distributes the cells of the former value column across the cells of the new columns and truncates any non-key, non-value columns in a way that prevents duplication.
+spread() takes three optional arguments in addition to data, key, and value:
+
+fill - If the tidy structure creates combinations of variables that do not exist in the original data set, spread() will place an NA in the resulting cells. NA is R’s missing value symbol. You can change this behaviour by passing fill an alternative value to use.
+
+convert - If a value column contains multiple types of data, its elements will be saved as a single type, usually character strings. As a result, the new columns created by spread() will also contain character strings. If you set convert = TRUE, spread() will run type.convert() on each new column, which will convert strings to doubles (numerics), integers, logicals, complexes, or factors.
+
+drop - The drop argument controls how spread() handles factors in the key column. If you set drop = FALSE, spread will keep factor levels that do not appear in the key column, filling in the missing combinations with the value of fill.
+```{r}
+library(tidyr)
+table2
+print(table2)
+# type = key
+# count = value
+spread(table2, type, count)
+# spread() distributes a pair of key:value columns into a field of cells. The unique values of the key column become the column names of the field of cells.
+```
+
+## gather() collects a set of column names and places them into a single “key” column. It also collects the cells of those columns and places them into a single value column.
+gather(table4, "year", "cases", 2:3)
+```{r}
+print(table5)
+
+gather(table5, "year", "population", c(2, 3))
+
+gather(table5, "year", "population", c(100:121), factor_key = TRUE)
+gather(table5, "year", "population", -1)
+# See vignette("pivot") for examples and explanation
+
+# Simplest case where column names are character data
+psm_pivot <- relig_income %>%
+  pivot_longer(!religion, names_to = "income", values_to = "count")
+
+# Slightly more complex case where columns have common prefix,
+# and missing missings are structural so should be dropped.
+# psm_pivot <- psm_data %>%
+#   pivot_longer(
+#     cols = starts_with("FRS_Children_"),
+#     names_to = "child",
+#     names_prefix = "FRS_Children_",
+#     values_to = "rank",
+#     values_drop_na = TRUE
+#   ) %>%
+  # pivot_longer(
+  #   cols = starts_with("PSM_L_"),
+  #   names_to = "PSM",
+  #   names_prefix = "PSM_L_",
+  #   values_to = "rank",
+  #   values_drop_na = TRUE
+  # ) %>%
+# head(psm_pivot)
+# 
+# # Multiple variables stored in column names
+# who %>% pivot_longer(
+#   cols = new_sp_m014:newrel_f65,
+#   names_to = c("diagnosis", "gender", "age"),
+#   names_pattern = "new_?(.*)_(.)(.*)",
+#   values_to = "count"
+# )
+# 
+# # Multiple observations per row
+# anscombe
+# anscombe %>%
+#   pivot_longer(
+#     everything(),
+#     names_to = c(".value", "set"),
+#     names_pattern = "(.)(.)"
+#   )
+```
+
+## separate() turns a single character column into multiple columns by splitting the values of the column wherever a separator character appears.
+separate(table3, rate, into = c("cases", "population"))
+```{r}
+print(table3)
+
+separate(table3, rate, into = c("cases", "population"), sep = "/") # or  sep = 2)
+```
+
+## unite() does the opposite of separate(): it combines multiple columns into a single column.
+```{r}
+print(table5)
+
+unite(table5, "new", century, year, sep = "")
+```
+The who data set in the DSR package contains cases of tuberculosis (TB) reported between 1995 and 2013 sorted by country, age, and gender. The data comes in the 2014 World Health Organization Global Tuberculosis Report, available for download at www.who.int/tb/country/data/download/en/. The data provides a wealth of epidemiological information, but it would be difficult to work with the data as it is.
+
+
+## Setting up Data 
+#Implementation of the SAS HwF weightings in R
+
+#Last edit: 02032022
+#Edited by: Leila Yousefi
+## #################  Installing Required Pachages  ######################## ##
+## #################  Old Code  ######################## ##
+
+## old code:
+packages = c("remotes", "dplyr", "data.table", "datasets", "aws.s3")
+
+
+```{r}
+install.packages("devtools")
+library(devtools)
+
+#>
+#> Attaching package: 'testthat'
+#> The following object is masked from 'package:devtools':
+#>
+#>     test_file
+devtools::session_info()
+
+
+#> create package
+
+## devtools::create("/home/leila-yousefi/R_Projects/RecruitmentTimeToHire)")
+
+#library(RecruitmentTimeToHire)
+
+
+install.packages("remotes")
+library(remotes)
+
+remotes::install_git("git@github.com:moj-analytical-services/Rs3tools.git")
+
+
+# install renv if it doesn't exist on your system
+if(!"renv" %in% installed.packages()[, "Package"]) install.packages("renv")
+# Remove bare = TRUE if you'd like to move your existing packages over to
+# renv. This is not a good idea if you're migrating from s3tools as
+# renv will attempt to install that library.
+renv::init(bare = TRUE)
+# Tell renv to use Python and set up a virtual environment
+# if you get an error here, remove the python path argument and
+# manually select the version of python you require
+#
+# If this process goes wrong run
+
+## renv::deactivate()
+## in the terminal and
+
+## rm -rf renv renv.lock .Rprofile requirements.txt
+
+#
+#
+renv::use_python(python='/usr/bin/python')
+#renv::use_python('renv/venv/bin/python')
+
+# Install reticulate so we can make calls to Python libraries, required by botor
+renv::install('reticulate')
+
+# Install the Python library, boto3, used by botor to access S3
+reticulate::py_install('boto3')
+
+# Install botor itself
+renv::install('botor')
+
+devtools::install_github("garrettgman/DSR")
+remotes::install_github("moj-analytical-services/dbtools")
+
+packages = c("usethis", "roxygen2", "devtools", "testthat", "tidyverse", "knitr", "tidyr", "dplyr", "dbplyr", "haven", "ggplot2", "stringr", "datasets", "rmarkdown", "timeDate", "bizdays")#, "botor", "moj-analytical-services/mojverse", "moj-analytical-services/mojrap") # "xltabr", "moj-analytical-services/xltabr", "s3tools", "aws.s3"
+
+## load or install and load all packages listed above
+## 
+package.check <- lapply(
+  packages,
+  FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  }
+)
+
+#library(haven) #for reading SAS dataset
+#
+install.packages("aws.s3",  "data.table", "bit64")
+#devtools::install_github("tidyverse/forcats")
+#devtools::install_github("garrettgman/DSR",force = TRUE)
+devtools::install_version('text2vec', version='0.5.1')
+
+library(data.table)
+library(aws.s3)
+library(bit64) 
+library(text2vec)
+library(DSR)
+library(botor)
+
+## Using read_using function to read in the data from S3 bucket
+## 
+#remotes::install_github('moj-analytical-services/s3browser')
+#s3browser::file_explorer_s3()
+read_using <- function(FUN, s3_path, ...) {
+  #trim s3:// if included by the user
+  s3_path <- paste0("s3://", gsub('^s3://', "", s3_path))
+  # find fileext
+  file_ext <- paste0('.', tolower(tools::file_ext(s3_path)))
+  # download file to tempfile()
+  tmp <- botor::s3_download_file(s3_path,
+                                 tempfile(fileext = file_ext),
+                                 force = TRUE)
+  FUN(tmp, ...)
+}
+
+
+```
+mojmar is a package containing functions designed to help production of Offender Mangament Statistics Quarterly (OMSQ). The functions in mojmar do the following things:
+
+Read sas7.bdat files into R dataframes
+Extract numerical values for dataframes (using functions from package dplyr)
+Format numbers for publication
+Generate sentences and parts of sentences for the OMSQ bulletin
+
+
+
+## #################  Data Access    ######################## ##
+## #################  Old Code  ######################## ##
+
+## old code:
+#this code also installs the aws package
+#This is the PSM dataset that forms the core of the modelling
+df <- aws.s3::s3read_using(function(x) {fread(x)},
+                           object = "_1_frs_psm_manipulation.csv",
+                           bucket = "alpha-help-with-fees-model")
+                           
+#This dataset brings in the adjustment that is needed to the weights for civil users.
+civil_weight <- aws.s3::s3read_using(function(x) {fread(x)},
+                           object = "CCUS_weights.csv",
+                           bucket = "alpha-help-with-fees-model")
+
+divorce_weight <- aws.s3::s3read_using(function(x) {fread(x)},
+                                     object = "divorce_weights.csv",
+                                     bucket = "alpha-help-with-fees-model")
+
+## ######################################### ##
+
+## Migrating to the new s3tools 
+#  Using botor as a replacement of aws.s3
+# For a dataframe,
+df <- s3_read("s3://alpha-mybucket/my_data.csv", read.csv)
+# for a tibble,
+dti <- s3_read("s3://alpha-mybucket/my_data.csv", readr::read_csv)
+# and for a data.table
+dt <- s3_read("s3://alpha-mybucket/my_data.csv", data.table::fread)
+
+
+```{r}
+
+## Loading HelpWithFeesModelRAP
+# devtools::document(roclets = c('rd', 'collate', 'namespace', 'vignette'))
+# devtools::load_all(".")
+# devtools::check()
+# 
+## ######################################### ##
+
+## Migrating to the new s3tools 
+#  Using botor as a replacement of aws.s3
+
+
+## Read psm data in and save it into psm_data
+psm_data <- read_using(
+  FUN = data.table::fread,
+  s3_path = 's3://alpha-help-with-fees-model/_1_frs_psm_manipulation.csv'
+)
+
+## Check the dataset summary to assure there is no need for the data cleaning 
+## , manipulation and pre-processing stages
+summary(psm_data)
+
+## ######################### Setting up Data ####################### ##
+## Function create_data_object
+## Creates data objects from s3 csv files and
+## Return RDA objects
+## Output: RDA object
+
+## input arguments: -----------------------------------------------------
+
+##FUN : function to read different type of data
+FUN <- data.table::fread
+
+## s3_path : path_s3_bucket_csv : an string path to a S3 bucket CSV file
+s3_path <- "s3://alpha-help-with-fees-model/_1_frs_psm_manipulation.csv"
+
+## dataset_type : based on if_else(condition, true, false, missing = NULL)
+## ## condition
+## tibble: 1 (default)
+## data frame: 2
+dataset_type <- 2 # data frame
+
+## output:
+## rda : data table from red_using function 
+# rda <- rda_df
+## Read S3 bucket CSV file and convert it to a data.table and then data frame
+rda_df  <- create_data_object(FUN, s3_path, dataset_type, rda_df)
+# Create a dataframe called WeightingsDF from the data imported from the PSM dataset (_1_frs_psm_manipulation.csv)
+
+rename_files(R/rda.rda, R/WeightingsDF.rda) # WeightingsDF <- rda_df
+
+## Civil and Divorce data------------------------------------------------
+## Read S3 bucket CSV files and convert it to a data.table and then tibble
+## 
+## Civil data------------------------------------------------
+## FUN : function to read different type of data
+FUN <- data.table::fread
+
+## s3_path : path_s3_bucket_csv : an string path to a S3 bucket CSV file
+s3_path <- "s3://alpha-help-with-fees-model/CCUS_weights.csv"
+
+## dataset_type tibble: 1 (default)
+dataset_type <- 1 # tibble
+
+# civil_weight dataset brings in the adjustment that 
+# is needed to the weights for civil users.
+civil_weight <- create_data_object(FUN, s3_path, dataset_type, civil_weight_rda)
+
+## Divorce data------------------------------------------------
+## FUN : function to read different type of data
+FUN <- data.table::fread
+
+## s3_path : path_s3_bucket_csv : an string path to a S3 bucket CSV file
+s3_path <- "s3://alpha-help-with-fees-model/divorce_weights.csv"
+
+## dataset_type tibble: 1 (default)
+dataset_type <- 1 # tibble
+
+# civil_weight dataset brings in the adjustment that 
+# is needed to the weights for civil users.
+divorce_weight <- create_data_object(FUN, s3_path, dataset_type, divorce_weight_rda)
+# divorce_weight dataset brings in the adjustment that is needed to the weights for divorced users.
+
+
+```
+## ######################################### ##
+## #################  Setting Up variables    ######################## ##
+## #################  Old Code  ######################## ##
+
+## old code:
+
+#Calculate age bands
+#This section takes the recorded age of respondents (in years) and sorts it into the appropriate age band
+WeightingsDF <- WeightingsDF %>% mutate(age_band_head = ifelse(FRS_Person_1_Age >= 16 & FRS_Person_1_Age <= 24,"16 to 24",0))
+WeightingsDF <- WeightingsDF %>% mutate(age_band_head = ifelse(FRS_Person_1_Age >= 25 & FRS_Person_1_Age <= 34,"25 to 34",age_band_head))
+WeightingsDF <- WeightingsDF %>% mutate(age_band_head = ifelse(FRS_Person_1_Age >= 35 & FRS_Person_1_Age <= 44,"35 to 44",age_band_head))
+WeightingsDF <- WeightingsDF %>% mutate(age_band_head = ifelse(FRS_Person_1_Age >= 45 & FRS_Person_1_Age <= 54,"45 to 54",age_band_head))
+WeightingsDF <- WeightingsDF %>% mutate(age_band_head = ifelse(FRS_Person_1_Age >= 55 & FRS_Person_1_Age <= 64,"55 to 64",age_band_head))
+WeightingsDF <- WeightingsDF %>% mutate(age_band_head = ifelse(FRS_Person_1_Age >= 65 & FRS_Person_1_Age <= 74,"65 to 74",age_band_head))
+WeightingsDF <- WeightingsDF %>% mutate(age_band_head = ifelse(FRS_Person_1_Age >= 75,"75+",age_band_head))
+
+
+#This section takes the recorded age of respondents (in years) and sorts it into the appropriate age band for divorce. 
+#This uses narrower bands than age_band_head
+WeightingsDF <- WeightingsDF %>% mutate(Divorce_age = ifelse(FRS_Person_1_Age < 20, "<20",0))
+WeightingsDF <- WeightingsDF %>% mutate(Divorce_age = ifelse(FRS_Person_1_Age >= 20 & FRS_Person_1_Age <= 24, "20-24",Divorce_age))
+WeightingsDF <- WeightingsDF %>% mutate(Divorce_age = ifelse(FRS_Person_1_Age >= 25 & FRS_Person_1_Age <= 29, "25-29",Divorce_age))
+WeightingsDF <- WeightingsDF %>% mutate(Divorce_age = ifelse(FRS_Person_1_Age >= 30 & FRS_Person_1_Age <= 34, "30-34",Divorce_age))
+WeightingsDF <- WeightingsDF %>% mutate(Divorce_age = ifelse(FRS_Person_1_Age >= 35 & FRS_Person_1_Age <= 39, "35-39",Divorce_age))
+WeightingsDF <- WeightingsDF %>% mutate(Divorce_age = ifelse(FRS_Person_1_Age >= 40 & FRS_Person_1_Age <= 44, "40-44",Divorce_age))
+WeightingsDF <- WeightingsDF %>% mutate(Divorce_age = ifelse(FRS_Person_1_Age >= 45 & FRS_Person_1_Age <= 49, "45-49",Divorce_age))
+WeightingsDF <- WeightingsDF %>% mutate(Divorce_age = ifelse(FRS_Person_1_Age >= 50 & FRS_Person_1_Age <= 54, "50-54",Divorce_age))
+WeightingsDF <- WeightingsDF %>% mutate(Divorce_age = ifelse(FRS_Person_1_Age >= 55 & FRS_Person_1_Age <= 59, "55-59",Divorce_age))
+WeightingsDF <- WeightingsDF %>% mutate(Divorce_age = ifelse(FRS_Person_1_Age >= 60, "60+",Divorce_age))
+## ######################################### ##
+
+## Migrating to Case_when() to create new variable
+#  Using Case_when as a replacement of ifelse
+
+```{r}
+
+### Case_when() to create new variable and Calculate age bands
+#This section takes the recorded age of respondents (in years) and sorts it into the appropriate age band
+WeightingsDF %>% dplyr::mutate(age_band_head = dplyr::case_when(
+  FRS_Person_1_Age >=16 & FRS_Person_1_Age <=24   ~ "16 to 24",
+  FRS_Person_1_Age >=25 & FRS_Person_1_Age <=34   ~ "25 to 34",
+  FRS_Person_1_Age >=35 & FRS_Person_1_Age <=44   ~ "35 to 44",
+  FRS_Person_1_Age >=45 & FRS_Person_1_Age <=54   ~ "45 to 54",
+  FRS_Person_1_Age >=55 & FRS_Person_1_Age <=64   ~ "55 to 64",
+  FRS_Person_1_Age >=65 & FRS_Person_1_Age <=74   ~ "65 to 74",
+  FRS_Person_1_Age >=75 ~ "75+",
+  TRUE ~ as.character(age_band_head)))#TRUE ~ "0"TRUE ~ as.numeric(as.character(age_band_head)
+
+
+#This section takes the recorded age of respondents (in years) and sorts it into the appropriate age band for divorce. 
+#This uses narrower bands than age_band_head
+WeightingsDF %>% dplyr::mutate(Divorce_age = dplyr::case_when(
+  FRS_Person_1_Age <20 ~ "<24",
+  FRS_Person_1_Age >=20 & FRS_Person_1_Age <=24   ~ "20 to 24",
+  FRS_Person_1_Age >=25 & FRS_Person_1_Age <=29   ~ "25 to 29",
+  FRS_Person_1_Age >=30 & FRS_Person_1_Age <=34   ~ "30 to 34",
+  FRS_Person_1_Age >=35 & FRS_Person_1_Age <=39   ~ "35 to 39",
+  FRS_Person_1_Age >=40 & FRS_Person_1_Age <=44   ~ "40 to 44",
+  FRS_Person_1_Age >=45 & FRS_Person_1_Age <=49   ~ "45 to 49",
+  FRS_Person_1_Age >=50 & FRS_Person_1_Age <=54   ~ "50 to 54",
+  FRS_Person_1_Age >=55 & FRS_Person_1_Age <=59   ~ "55 to 59",
+  FRS_Person_1_Age >=60 ~ "60+",
+  TRUE ~ as.character(age_band_head)))#TRUE ~ "0"TRUE ~ as.numeric(as.character(age_band_head)
+
+```
+  # Another way for Creating age bandings
+  WeightingsDF$age_band_head <- cut(table$age,
+                          breaks = c( 16, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, Inf),
+                          labels = c("16 to 24", "25 to 34", "35 to 44", "45 to 54",
+                                     "55 to 64", "65 to 74",
+                                     "75+"),
+                          right = FALSE)
+## ######################################### ##
+```{r}
+WeightingsDF <- WeightingsDF %>%
+  dplyr::mutate(self_employed =
+           ifelse(FRS_Employ_Type_person_1==2,1,0))
+```
+
+## ######################################### ##
+## #################  Setting Up Structure of Parameters   ######################## ##
+## #################  Old Code  ######################## ##
+
+## old code:
+#Create a new dataframe (WeightingsDF_2) from a merger of WeightingsDF and the civil_weight dataframe from CCUS_weights.csv
+WeightingsDF_2 <- merge( WeightingsDF, civil_weight, by=c("age_band_head","self_employed"))
+
+#Now merge in the divorce_weight dataframe from divorce_weights.csv
+WeightingsDF_2 <- merge(WeightingsDF_2, divorce_weight, by="Divorce_age")
+
+## ######################################### ##
+## Merging on the weights## ######################################### ##
+
+```{r}
+WeightingsDF$age_band_head
+
+#Create a new dataframe (WeightingsDF_2) from a merger of WeightingsDF and the civil_weight dataframe from CCUS_weights.csv
+WeightingsDF_2 <- merge( WeightingsDF, civil_weight, by=c("age_band_head","self_employed"))
+
+#Now merge in the divorce_weight dataframe from divorce_weights.csv
+WeightingsDF_2 <- merge(WeightingsDF_2, divorce_weight, by="Divorce_age")
+```
+
+## Migrating to join for Merging on the weights
+#  Using left_join as a replacement of merge
+left_join(df_primary, df_secondary, by = c('ID', 'year'))
+```{r}
+
+#Create a new dataframe (WeightingsDF_2) from a merger of WeightingsDF and the civil_weight dataframe from CCUS_weights.csv
+WeightingsDF_2 <- dplyr:::left_join.data.frame( WeightingsDF, civil_weight, by=c('age_band_head','self_employed'))
+
+#Now merge in the divorce_weight dataframe from divorce_weights.csv
+WeightingsDF_2 <- dplyr:::left_join( WeightingsDF_2, divorce_weight, by="Divorce_age")
+
+```
+
+```{r}
+WeightingsDF_2
+```
+
+## ######################################### ##
+## #################  Adjusted Data (manipulated by weighting)   ######################## ##
+## #################  Old Code  ######################## ##
+
+## old code:
+#Create the weights to use in the main HwF test
+#This creates the HwF_civil_weight and HwF_divorce_weight weightings
+WeightingsDF_2 <- WeightingsDF_2 %>% mutate(HwF_civil_weight = PSM_Grossing_Factor*CCUS_Weight)
+WeightingsDF_2 <- WeightingsDF_2 %>% mutate(HwF_divorce_weight = PSM_Grossing_Factor*Divorce_weight)
+
+WeightingsDF_2 <- subset(WeightingsDF_2, select = -c(CCUS_Weight,Divorce_weight))
+
+## Cleaning, Migrating and simplifying 
+# Using select() instead of subset
+```{r}
+
+#Create the weights to use in the main HwF test
+#This creates the HwF_civil_weight and HwF_divorce_weight weightings
+WeightingsDF_2 %>% mutate(HwF_civil_weight = PSM_Grossing_Factor*CCUS_Weight)
+WeightingsDF_2 %>% mutate(HwF_divorce_weight = PSM_Grossing_Factor*Divorce_weight)
+
+WeightingsDF_2 %>% select(-c(CCUS_Weight,Divorce_weight))
+```
+
+## #################  Data Access    ######################## ##
+## #################  Old Code  ######################## ##
+
+## old code:
+#This code sets up the private law weight. The private law weight is created by creating income
+#deprivation percentiles and attaching these to the private law dataset using LSOA.
+
+
+deprivation_scores <- aws.s3::s3read_using(function(x) {fread(x)},
+                                           object = "Copy of File_5_-_IoD2019_Scores.csv",
+                                           bucket = "alpha-help-with-fees-model")
+
+private_law_LSOA <- aws.s3::s3read_using(function(x) {fread(x)},
+                                         object = "PRIVATE_LAW_anonymised_with_LSOA.csv",
+                                         bucket = "alpha-help-with-fees-model")
+
+## ######################################### ##
+
+## Migrating to the new s3tools 
+#  Using botor as a replacement of aws.s3
+
+#This code sets up the private law weight. The private law weight is created by creating income
+#deprivation percentiles and attaching these to the private law dataset using LSOA.
+```{r}
+
+# Read S3 bucket CSV file and convert it to a data.table
+deprivation_scores <- s3_read("s3://alpha-help-with-fees-model/Copy of File_5_-_IoD2019_Scores.csv", data.table::fread)
+
+# This dataset brings in the adjustment that is needed to the weights for civil users.
+private_law_LSOA <- s3_read("s3://alpha-help-with-fees-model/PRIVATE_LAW_anonymised_with_LSOA.csv", data.table::fread)
+
+
+```
+## ######################################### ##
+PSM based model to calculate changes to the Help with Fees remissions scheme.
+
+The model should be run in the following order: a) Run the ''set up weights' code to set up the weights used in the modelling; b) Run the 'run the remissions test code' to set up the PSM data and run the HwF means test on this population
+
+To run an alternative HwF option, you should copy the code into a branch and edit it to run an alternative remissions test there.
+
+## #################  Setting Up variables    ######################## ##
+## #################  Old Code  ######################## ##
+
+
+## Cleaning, Migrating and simplifying 
+# Using filter() function is used to subset a data frame,
+# retaining all rows that satisfy the conditions.
+
+lso_income <- deprivation_scores[ ,
+                                  c('LSOA name (2011)',
+                                  'LSOA code (2011)',
+                                  'Income Score (rate)')]
+
+#This code ranks the income scores and assigns percentile rankings.
+lso_income$Rank_per <- percent_rank(lso_income$'Income Score (rate)')
+
+
+private_law_LSOA$DATE_OF_ISSUE <- as.Date(private_law_LSOA$DATE_OF_ISSUE, origin = "1899-12-30")
+
+#The percentile ranks are merged onto the private law dataset by LSOA
+private_law_LSOA <- select(merge(private_law_LSOA, lso_income , by.x=c("Lower_Super_Output_Area_Code"), by.y=c("LSOA code (2011)")), -c(7))
+
+private_law_LSOA$Percentile_label = as.integer((100*private_law_LSOA$Rank_per)) # changed this so that it was 0-99 like the SAS - the min and max will differ from 0 and 100 by 1/n
+
+#The private law percentiles are exported and an excel file creates the adjustments that need to be
+#made to the main weights. This happens in the main part of the code.
+write.csv(private_law_LSOA, file="private_law_income_percentiles.csv")
+## ######################################### ##
+## #################  Setting Up variables    ######################## ##
+## #################  new Code  ######################## ##
+```{r}
+## Cleaning, Migrating and simplifying
+# Using filter() function is used to subset a data frame,
+# retaining all rows that satisfy the conditions.
+
+lso_income <- deprivation_scores[ , c('LSOA name (2011)', 'LSOA code (2011)', 'Income Score (rate)')]
+
+
+#This code ranks the income scores and assigns percentile rankings.
+lso_income$Rank_per <-
+  percent_rank(lso_income$'Income Score (rate)')
+
+
+private_law_LSOA$DATE_OF_ISSUE <-
+  as.Date(private_law_LSOA$DATE_OF_ISSUE, origin = "1899-12-30")
+
+#The percentile ranks are merged onto the private law dataset by LSOA
+private_law_LSOA <-
+  select(merge(private_law_LSOA, lso_income ,
+               by.x=c("Lower_Super_Output_Area_Code"),
+               by.y=c("LSOA code (2011)")), -c(7))
+
+private_law_LSOA$Percentile_label =
+  as.integer((100*private_law_LSOA$Rank_per)) # changed this so that
+#it was 0-99 like the SAS - the min and max will differ from 0 and 100 by 1/n
+
+#The private law percentiles are exported and an excel file creates the adjustments that need to be
+#made to the main weights. This happens in the main part of the code.
+write.csv(private_law_LSOA, file="private_law_income_percentiles.csv")
+```
+
+#Next step is to 'Run_the_remission_test.R
+
